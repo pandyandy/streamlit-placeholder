@@ -3,7 +3,7 @@ import os
 import streamlit as st
 from keboola_streamlit import KeboolaStreamlit
 
-TABLE_ID = "in.c-CSAS_JS.KS_SOURCE_TABLE"
+TABLE_ID = "in.c-archive.archive1"
 
 st.set_page_config(page_title="Streamlit Placeholder", page_icon="🧪", layout="wide")
 
