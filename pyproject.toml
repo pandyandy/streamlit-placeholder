@@ -5,5 +5,5 @@ description = "Placeholder Streamlit app for testing"
 requires-python = ">=3.11"
 dependencies = [
     "streamlit",
-    "keboola-streamlit>=0.2.0",
+    "keboola-streamlit[query-service] @ git+https://github.com/keboola/keboola_streamlit@f4f9e8639dd4707be127d507d13091a70d7404de",
 ]

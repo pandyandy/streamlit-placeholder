@@ -613,6 +613,19 @@ wheels = [
 ]
 
 [[package]]
+name = "httpcore"
+version = "1.0.9"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "certifi" },
+    { name = "h11" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/06/94/82699a10bca87a5556c9c59b5963f2d039dbd239f25bc2a63907a05a14cb/httpcore-1.0.9.tar.gz", hash = "sha256:6e34463af53fd2ab5d807f399a9b45ea31c3dfa2276f15a2c3f00afff6e176e8", size = 85484, upload-time = "2025-04-24T22:06:22.219Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7e/f5/f66802a942d491edb555dd61e3a9961140fd64c90bce1eafd741609d334d/httpcore-1.0.9-py3-none-any.whl", hash = "sha256:2d400746a40668fc9dec9810239072b40b4484b640a8c38fd654a024c7a1bf55", size = 78784, upload-time = "2025-04-24T22:06:20.566Z" },
+]
+
+[[package]]
 name = "httptools"
 version = "0.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -712,6 +725,21 @@ wheels = [
 ]
 
 [[package]]
+name = "httpx"
+version = "0.28.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "certifi" },
+    { name = "httpcore" },
+    { name = "idna" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b1/df/48c586a5fe32a0f01324ee087459e112ebb7224f646c0b5023f5e79e9956/httpx-0.28.1.tar.gz", hash = "sha256:75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc", size = 141406, upload-time = "2024-12-06T15:37:23.222Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2a/39/e50c7c3a983047577ee07d2a9e53faf5a69493943ec3f6a384bdc792deb2/httpx-0.28.1-py3-none-any.whl", hash = "sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad", size = 73517, upload-time = "2024-12-06T15:37:21.509Z" },
+]
+
+[[package]]
 name = "idna"
 version = "3.20"
 source = { registry = "https://pypi.org/simple" }
@@ -806,9 +834,21 @@ wheels = [
 ]
 
 [[package]]
-name = "keboola-streamlit"
-version = "0.2.0"
+name = "keboola-query-service"
+version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/af/02/b114348164aa5cc38ea01cd552ab851c44a47fa254673e2809dcdab2ab6d/keboola_query_service-0.3.0.tar.gz", hash = "sha256:106fe2123e741fade5cc964ca50fac9b543e87b2ef27b5f7e100e91dd85a9d32", size = 12635, upload-time = "2026-08-19T06:47:58.346Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5a/c2/172513a506833cb165ec87a4b304adac9af1a5c636eba21e1379d4e23526/keboola_query_service-0.3.0-py3-none-any.whl", hash = "sha256:25bb2d759f73ac6c419f4cfd45fb393362fb7616bacb87d6184a3e0c87eb050b", size = 14541, upload-time = "2026-08-19T06:47:57.046Z" },
+]
+
+[[package]]
+name = "keboola-streamlit"
+version = "0.3.0"
+source = { git = "https://github.com/keboola/keboola_streamlit?rev=f4f9e8639dd4707be127d507d13091a70d7404de#f4f9e8639dd4707be127d507d13091a70d7404de" }
 dependencies = [
     { name = "deprecated", version = "1.3.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "deprecated", version = "3.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
@@ -816,9 +856,10 @@ dependencies = [
     { name = "pandas" },
     { name = "streamlit" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f1/70/e6a00b69287f1684510cdb4232885af60cde85d996399eb1902b37c113d5/keboola_streamlit-0.2.0.tar.gz", hash = "sha256:083bc47c03a1d033f03efb943eaf350fdf769a2b35cd928a4ecb78eacf2353b3", size = 8027, upload-time = "2026-07-16T10:42:28.07Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/57/f0/2fb93a13177b0f9d803bd4bd92b7bfc6fb34a82a12095149f4e265c5b308/keboola_streamlit-0.2.0-py3-none-any.whl", hash = "sha256:674790325ab4fbe5dcb081de145ffbb2f361a5f7d9fda087491f2df625e63f5d", size = 9060, upload-time = "2026-07-16T10:42:27.113Z" },
+
+[package.optional-dependencies]
+query-service = [
+    { name = "keboola-query-service" },
 ]
 
 [[package]]
@@ -1760,13 +1801,13 @@ name = "streamlit-placeholder"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
-    { name = "keboola-streamlit" },
+    { name = "keboola-streamlit", extra = ["query-service"] },
     { name = "streamlit" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "keboola-streamlit", specifier = ">=0.2.0" },
+    { name = "keboola-streamlit", extras = ["query-service"], git = "https://github.com/keboola/keboola_streamlit?rev=f4f9e8639dd4707be127d507d13091a70d7404de" },
     { name = "streamlit" },
 ]
 
