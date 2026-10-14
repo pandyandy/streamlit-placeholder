@@ -67,6 +67,10 @@ except Exception as e:
 
 if "saved_message" in st.session_state:
     st.success(st.session_state.pop("saved_message"))
+    with st.expander("Result of each statement", expanded=True):
+        for statement, result in st.session_state.pop("save_results", []):
+            st.code(statement, language="sql")
+            st.dataframe(result, hide_index=True)
 
 st.write(f"{len(df):,} rows × {len(df.columns)} columns · edit cells, add rows at the bottom, or select rows and delete them")
 
@@ -84,11 +88,15 @@ save_col, discard_col = st.columns([1, 6])
 if save_col.button("Save changes", type="primary", disabled=not statements):
     try:
         with st.spinner("Saving through Query Service…"):
-            keboola.query_service_execute_query(statements, return_df=False, transactional=True, raise_on_error=True)
+            results = keboola.query_service_execute_query(
+                statements, transactional=True, coerce_numeric=False, raise_on_error=True
+            )
     except Exception as e:
         st.error(f"Save failed, nothing was changed: {e}")
     else:
-        st.session_state["saved_message"] = f"Saved {len(statements)} change(s)."
+        # Snowflake answers each DML statement with a row count ("number of rows updated", ...)
+        st.session_state["save_results"] = list(zip(statements, results))
+        st.session_state["saved_message"] = f"Query Service ran {len(statements)} statement(s)."
         st.session_state["editor_version"] = st.session_state.get("editor_version", 0) + 1
         run_query.clear()
         st.rerun()
