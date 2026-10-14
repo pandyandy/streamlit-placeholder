@@ -1,4 +1,6 @@
+import functools
 import os
+from contextlib import contextmanager
 
 import pandas as pd
 import streamlit as st
@@ -15,6 +17,23 @@ st.set_page_config(page_title="Streamlit Placeholder", page_icon="🧪", layout=
 # the bucket-scoped STORAGE_API_TOKEN secret otherwise.
 token_name = "KBC_TOKEN" if os.environ.get("KBC_TOKEN") else "STORAGE_API_TOKEN"
 keboola = KeboolaStreamlit(root_url=os.environ["KBC_URL"], token=os.environ[token_name])
+
+
+@contextmanager
+def refresh_metadata_on_success():
+    """Ask Query Service to refresh Storage table metadata after a successful write.
+
+    Temporary workaround: keboola_streamlit PR #36 does not expose the SDK's
+    refresh_metadata_on_success flag yet, so patch it into the library's cached
+    client for the duration of the call. Access logging still happens as usual.
+    """
+    client = keboola.query_service_get_client()
+    original_submit = client.submit_job
+    client.submit_job = functools.partial(original_submit, refresh_metadata_on_success=True)
+    try:
+        yield
+    finally:
+        client.submit_job = original_submit
 
 
 @st.cache_data(ttl=600, show_spinner="Querying Keboola Query Service…")
@@ -98,7 +117,7 @@ if statements:
 save_col, discard_col = st.columns([1, 6])
 if save_col.button("Save changes", type="primary", disabled=not statements):
     try:
-        with st.spinner("Saving through Query Service…"):
+        with st.spinner("Saving through Query Service…"), refresh_metadata_on_success():
             results = keboola.query_service_execute_query(
                 statements, transactional=True, coerce_numeric=False, raise_on_error=True
             )
