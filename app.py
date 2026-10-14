@@ -7,7 +7,6 @@ from keboola_streamlit import KeboolaStreamlit
 TABLE_ID = "in.c-archive.archive1"
 BUCKET_ID, TABLE_NAME = TABLE_ID.rsplit(".", 1)
 TABLE_REF = f'"{BUCKET_ID}"."{TABLE_NAME}"'
-QUERY = f"SELECT * FROM {TABLE_REF}"
 
 st.set_page_config(page_title="Streamlit Placeholder", page_icon="🧪", layout="wide")
 
@@ -19,23 +18,35 @@ keboola = KeboolaStreamlit(root_url=os.environ["KBC_URL"], token=os.environ[toke
 
 
 @st.cache_data(ttl=600, show_spinner="Querying Keboola Query Service…")
-def run_query(query: str) -> pd.DataFrame:
-    # Keep values as the exact strings Storage holds, so they can be matched in WHERE clauses
-    df = keboola.query_service_execute_query(query, coerce_numeric=False, raise_on_error=True)
+def load_table() -> pd.DataFrame:
+    columns = keboola.query_service_execute_query(f"SELECT * FROM {TABLE_REF} LIMIT 0", raise_on_error=True).columns
     # Storage's internal column is managed by Keboola, not the user
-    return df.drop(columns=["_timestamp"], errors="ignore").reset_index(drop=True)
+    columns = [col for col in columns if col != "_timestamp"]
+    # Query Service returns typed values in raw form (a DATE as days since 1970), so let Snowflake
+    # render every column as text. Snowflake casts these strings back when they are used in SQL.
+    select = ", ".join(f'TO_VARCHAR("{col}") AS "{col}"' for col in columns)
+    df = keboola.query_service_execute_query(
+        f"SELECT {select} FROM {TABLE_REF}", coerce_numeric=False, raise_on_error=True
+    )
+    return df.reset_index(drop=True)
+
+
+def is_empty(value) -> bool:
+    return value is None or value == "" or (isinstance(value, float) and pd.isna(value))
 
 
 def sql_value(value) -> str:
-    """Render a cell as a SQL string literal (Query Service has no bind parameters)."""
-    if value is None or (isinstance(value, float) and pd.isna(value)):
-        value = ""
+    """Render a cell as a SQL literal (Query Service has no bind parameters)."""
+    if is_empty(value):
+        return "NULL"
     return "'" + str(value).replace("'", "''") + "'"
 
 
 def row_condition(row: pd.Series) -> str:
     # The table has no primary key, so a row is identified by all its original values
-    return " AND ".join(f'"{col}" = {sql_value(row[col])}' for col in row.index)
+    return " AND ".join(
+        f'"{col}" IS NULL' if is_empty(row[col]) else f'"{col}" = {sql_value(row[col])}' for col in row.index
+    )
 
 
 def build_statements(df: pd.DataFrame, changes: dict) -> list[str]:
@@ -60,7 +71,7 @@ with st.expander("Runtime environment"):
         st.write(f"`{var}`: {'set' if os.environ.get(var) else 'not set'}")
 
 try:
-    df = run_query(QUERY)
+    df = load_table()
 except Exception as e:
     st.error(f"Query failed: {e}")
     st.stop()
@@ -98,7 +109,7 @@ if save_col.button("Save changes", type="primary", disabled=not statements):
         st.session_state["save_results"] = list(zip(statements, results))
         st.session_state["saved_message"] = f"Query Service ran {len(statements)} statement(s)."
         st.session_state["editor_version"] = st.session_state.get("editor_version", 0) + 1
-        run_query.clear()
+        load_table.clear()
         st.rerun()
 if discard_col.button("Discard", disabled=not statements):
     st.session_state["editor_version"] = st.session_state.get("editor_version", 0) + 1
